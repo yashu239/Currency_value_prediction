@@ -9,16 +9,30 @@ import os
 import pickle
 from datetime import datetime
 
-# Get the absolute directory path where app.py lives to guide the cloud server paths securely
+# =================================================================
+# SYSTEM INITIALIZATION & ANCHORING
+# =================================================================
+
+# 1. Get the absolute directory path where app.py lives to guide cloud paths securely
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# 2. Establish today's exact system date to anchor the forward runway timeline
+CURRENT_DATE = datetime.now()
+st.sidebar.caption(f"📅 Core Anchored to Live Run: **{CURRENT_DATE.strftime('%B %Y')}**")
+
+# Define the explicit 19 feature columns sequencing to match model expectations exactly
+features_order = [
+    'Monthly_Avg_VIXCLS', 'FEDFUNDS', 'CPI_VALUE', 'Crude_Oil_Price', 'NFA_to_GDP_Ratio', 'Import_Cover_Months', 'Debt_Coverage_Ratio', 
+    'Debt_to_GDP_Ratio', 'Trade_Balance_to_GDP', 'NFA_Debt_Velocity', 'Real_Capital_Drain', 'Fed_Rate_Momentum', 'Oil_Sensitivity_Index', 
+    'Gold_to_Debt_Ratio', 'NFA_Z_Score', 'Exchange_Rate_Volatility', 'Synthetic_Stress_Index', 'Gold_3M_Change', 'DXY_3M_Change'
+]
+
 # =================================================================
-# PHASE 1: SYSTEM CORE INITIALIZATION & CACHED ARTIFACT FEEDS
+# CACHED DATA & MODEL ARTIFACT FEEDS
 # =================================================================
 
 @st.cache_resource
 def load_ml_models():
-    # Construct airtight absolute paths for cloud environment security
     cls_path = os.path.join(BASE_DIR, "xg_classifier.pkl")
     reg_path = os.path.join(BASE_DIR, "xg_12m_regressors.pkl")
     
@@ -29,7 +43,6 @@ def load_ml_models():
 
 classifier_model, multi_regressors = load_ml_models()
 
-# Asynchronous live data fetch engine for all global variables used in the matrix
 @st.cache_data(ttl=3600)
 def fetch_all_live_global_metrics():
     try:
@@ -41,24 +54,17 @@ def fetch_all_live_global_metrics():
         if fed_proxy <= 0: fed_proxy = 5.25
         return {"VIX": vix, "Oil": oil, "Gold": gold, "DXY": dxy, "FED": fed_proxy}
     except Exception:
-        # High-fidelity baseline fallback targets if API connections encounter throttling
         return {"VIX": 18.4, "Oil": 76.5, "Gold": 2320.0, "DXY": 104.5, "FED": 5.25}
 
 live_market = fetch_all_live_global_metrics()
 
-# Initialize unified session states for our control panel variables
-if 'vix_input' not in st.session_state:
-    st.session_state.vix_input = float(live_market['VIX'])
-if 'oil_input' not in st.session_state:
-    st.session_state.oil_input = float(live_market['Oil'])
-if 'fed_input' not in st.session_state:
-    st.session_state.fed_input = float(live_market['FED'])
-if 'gold_input' not in st.session_state:
-    st.session_state.gold_input = float(live_market['Gold'])
-if 'dxy_input' not in st.session_state:
-    st.session_state.dxy_input = float(live_market['DXY'])
+# Initialize session state variables for live overrides
+if 'vix_input' not in st.session_state: st.session_state.vix_input = float(live_market['VIX'])
+if 'oil_input' not in st.session_state: st.session_state.oil_input = float(live_market['Oil'])
+if 'fed_input' not in st.session_state: st.session_state.fed_input = float(live_market['FED'])
+if 'gold_input' not in st.session_state: st.session_state.gold_input = float(live_market['Gold'])
+if 'dxy_input' not in st.session_state: st.session_state.dxy_input = float(live_market['DXY'])
 
-# Combine internal structural tables exactly like our model expectations
 @st.cache_data
 def load_historical_database():
     pool_path = os.path.join(BASE_DIR, "composite_pool.csv")
@@ -71,7 +77,6 @@ def load_historical_database():
         df_nfa_tri['Date'] = pd.to_datetime(df_nfa_tri['Date'])
         return pd.merge(df_nfa_tri, df_pool, on=['COUNTRY', 'Date'], how='inner')
     else:
-        # High-fidelity backup loop
         dates = pd.date_range(start="2018-01-01", end="2025-12-01", freq="MS")
         mock_rows = []
         for c in ["Afghanistan", "Turkey", "India", "Egypt", "Brazil", "Argentina"]:
@@ -86,15 +91,8 @@ def load_historical_database():
 
 master_db = load_historical_database()
 
-# Define the explicit 19 feature columns sequencing to match model expectations
-features_order = [
-    'Monthly_Avg_VIXCLS', 'FEDFUNDS', 'CPI_VALUE', 'Crude_Oil_Price', 'NFA_to_GDP_Ratio', 'Import_Cover_Months', 'Debt_Coverage_Ratio', 
-    'Debt_to_GDP_Ratio', 'Trade_Balance_to_GDP', 'NFA_Debt_Velocity', 'Real_Capital_Drain', 'Fed_Rate_Momentum', 'Oil_Sensitivity_Index', 
-    'Gold_to_Debt_Ratio', 'NFA_Z_Score', 'Exchange_Rate_Volatility', 'Synthetic_Stress_Index', 'Gold_3M_Change', 'DXY_3M_Change'
-]
-
 # -------------------------------------------------------------
-# PHASE 2: SIDEBAR SELECTION & LIVE CONTROLS 
+# SIDEBAR CONFIGURATION PANEL
 # -------------------------------------------------------------
 st.sidebar.header("🔍 Configuration Panel")
 country_list = sorted(master_db['COUNTRY'].unique())
@@ -110,7 +108,7 @@ if st.sidebar.button("🔄 Reset to Live Market Values"):
     st.session_state.dxy_input = float(live_market['DXY'])
     st.rerun()
 
-# Calculate bounds dynamically relative to incoming live data arrays to protect from max value errors
+# Calculate bounds dynamically relative to incoming live data arrays to avoid out of bounds errors
 vix_max = float(max(80.0, st.session_state.vix_input * 1.3))
 oil_max = float(max(150.0, st.session_state.oil_input * 1.3))
 fed_max = float(max(10.0, st.session_state.fed_input * 1.3))
@@ -123,12 +121,12 @@ override_fed = st.sidebar.slider("US Fed Funds Rate (%)", 0.0, fed_max, key="fed
 override_gold = st.sidebar.slider("Global Gold Value ($/oz)", 1000.0, gold_max, key="gold_input")
 override_dxy = st.sidebar.slider("US Dollar Index (DXY)", 70.0, dxy_max, key="dxy_input")
 
-# Extract historical snapshot records for calculations
+# Extract historical records for focus country calculations
 country_historical = master_db[master_db['COUNTRY'] == selected_country].sort_values(by='Date')
 latest_record = country_historical.iloc[-1].copy()
 
 # -------------------------------------------------------------
-# PHASE 3: FEATURE ENGINEERING FOCUS ENGINE
+# CORE FOCUS NATION FEATURE ENGINEERING MATRIX
 # -------------------------------------------------------------
 gdp_focus = latest_record['GDP'] if latest_record.get('GDP', 0) > 0 else 1.0
 imp_focus = latest_record['Imports of goods'] if latest_record.get('Imports of goods', 0) > 0 else 1.0
@@ -152,7 +150,7 @@ feat_row_focus = pd.DataFrame([{
 feat_row_focus = feat_row_focus[features_order]
 
 # -------------------------------------------------------------
-# PHASE 4: GLOBAL RISK AGGREGATIONS FOR HEATMAP & LEADERBOARD
+# GLOBAL CROSS-SECTIONAL INFERENCE LOOP (LEADERBOARD & HEATMAP)
 # -------------------------------------------------------------
 global_current_summary = []
 
@@ -196,7 +194,7 @@ for c in country_list:
 global_summary_df = pd.DataFrame(global_current_summary)
 
 # -------------------------------------------------------------
-# PHASE 5: FOCUS COUNTRY RUNWAY CORE
+# REAL-TIME INFRASTRUCTURE INTERFACE EXECUTIONS
 # -------------------------------------------------------------
 @st.cache_data(ttl=1800)
 def scrape_live_spot_rate(country_name, fallback_rate):
@@ -210,7 +208,7 @@ def scrape_live_spot_rate(country_name, fallback_rate):
 base_spot = scrape_live_spot_rate(selected_country, latest_record['Exchange_Rate'])
 target_country_summary = global_summary_df[global_summary_df['COUNTRY'] == selected_country].iloc[0]
 
-# Metrics Summary Ribbon Component Cards
+# Metrics Ribbon Banner Component Cards
 kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
 with kpi_col1: st.metric(label="💵 Current Live Spot Rate (1 USD = X)", value=f"{base_spot:.2f}")
 with kpi_col2: st.metric(label="🚨 Systemic Risk (1Y Horizon)", value=f"{target_country_summary['Systemic_Risk']:.1f}%")
@@ -223,7 +221,7 @@ with kpi_col4:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# PHASE 6: VERTICAL RUNWAY BREAKDOWN (GRAPH ON TOP -> MATRIX BELOW)
+# VERTICAL FORECAST HORIZON RUNWAY (CHART ON TOP -> TABLE BELOW)
 # -------------------------------------------------------------
 st.subheader(f"🔮 12-Month Continuous Linear Macro-Forecast Runway: {selected_country}")
 
@@ -252,7 +250,7 @@ for m in range(1, 13):
         "Model Prediction Accuracy (Out-of-Sample MAE Constraint)": f"{accuracy_pct:.2f}%"
     })
 
-# Render Chart on Top
+# Plotly Runway Chart Display
 fig_forecast = go.Figure()
 fig_forecast.add_trace(go.Scatter(x=country_historical['Date'].tail(15), y=country_historical['Exchange_Rate'].tail(15),
                          mode='lines', name='Historical Path Baseline', line=dict(color='#00b4d8', width=2.5)))
@@ -268,7 +266,7 @@ if selected_country == "India": max_y = max(150.0, max_y)
 fig_forecast.update_layout(template="plotly_dark", hovermode="x unified", height=450, yaxis=dict(range=[min_y, max_y]))
 st.plotly_chart(fig_forecast, use_container_width=True)
 
-# Render Table Directly Beneath Chart
+# Matrix Data Table Display (Positioned Directly Below Chart)
 st.markdown("<br>", unsafe_allow_html=True)
 forecast_table_df = pd.DataFrame(table_rows)
 st.dataframe(forecast_table_df, use_container_width=True, hide_index=True)
@@ -276,7 +274,7 @@ st.dataframe(forecast_table_df, use_container_width=True, hide_index=True)
 st.markdown("---")
 
 # -------------------------------------------------------------
-# PHASE 7: GLOBAL CHOROPLETH RISK MAP
+# CHOROPLETH RISK HEATING MAP
 # -------------------------------------------------------------
 st.subheader("🗺️ Global Sovereign Risk Heat Map Matrix")
 
@@ -292,7 +290,7 @@ st.plotly_chart(fig_map, use_container_width=True)
 st.markdown("---")
 
 # -------------------------------------------------------------
-# PHASE 8: LEADERBOARD MATRIX
+# SOVEREIGN ASSET RANKING LEADERBOARD
 # -------------------------------------------------------------
 st.subheader("🏆 Sovereign Resilience Leaderboard Matrix")
 
@@ -309,7 +307,7 @@ st.dataframe(leaderboard_df[["Sovereign Nation", "Spot Exchange Rate", "12M Expe
 st.markdown("---")
 
 # -------------------------------------------------------------
-# PHASE 9: QUANT DIAGNOSTICS SUITE (SHAP & CORRELATIONS EMBEDS)
+# MODEL TRANSPARENCY DIAGNOSTICS SUITE (SHAP & PEARSONS HEATMAP)
 # -------------------------------------------------------------
 st.subheader("🧠 Deep Diagnostics Suite: Explaining the Model's Brain")
 diag_col1, diag_col2 = st.columns(2)
@@ -339,7 +337,7 @@ with diag_col2:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# PHASE 10: CONVERSATIONAL CO-PILOT ROOM
+# CONVERSATIONAL RISK INTERROGATION CO-PILOT
 # -------------------------------------------------------------
 st.subheader("💬 Institutional Conversational Co-Pilot Desk")
 
