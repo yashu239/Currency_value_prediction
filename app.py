@@ -9,20 +9,22 @@ import os
 import pickle
 from datetime import datetime
 
-# =================================================================
-# PHASE 1: SYSTEM CORE INITIALIZATION & ASYNCHRONOUS DATA FEEDS
-# =================================================================
-st.set_page_config(page_title="ProphetFX Global Engine", layout="wide", page_icon="🏛️")
-st.title("🏛️ ProphetFX: Sovereign Risk Live Dashboard & Multi-Horizon Suite")
-st.markdown("---")
+# Get the absolute directory path where app.py lives to guide the cloud server paths securely
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-CURRENT_DATE = datetime.now()
-st.sidebar.caption(f"📅 Core Anchored to Live Run: **{CURRENT_DATE.strftime('%B %Y')}**")
+# =================================================================
+# PHASE 1: SYSTEM CORE INITIALIZATION & CACHED ARTIFACT FEEDS
+# =================================================================
 
 @st.cache_resource
 def load_ml_models():
-    cls_model = pickle.load(open("xg_classifier.pkl", "rb")) if os.path.exists("xg_classifier.pkl") else None
-    multi_regressors = pickle.load(open("xg_12m_regressors.pkl", "rb")) if os.path.exists("xg_12m_regressors.pkl") else None
+    # Construct airtight absolute paths for cloud environment security
+    cls_path = os.path.join(BASE_DIR, "xg_classifier.pkl")
+    reg_path = os.path.join(BASE_DIR, "xg_12m_regressors.pkl")
+    
+    cls_model = pickle.load(open(cls_path, "rb")) if os.path.exists(cls_path) else None
+    multi_regressors = pickle.load(open(reg_path, "rb")) if os.path.exists(reg_path) else None
+    
     return cls_model, multi_regressors
 
 classifier_model, multi_regressors = load_ml_models()
@@ -59,8 +61,8 @@ if 'dxy_input' not in st.session_state:
 # Combine internal structural tables exactly like our model expectations
 @st.cache_data
 def load_historical_database():
-    pool_path = "composite_pool.csv"
-    nfa_path = "NFA_Monthly_Triangulated.csv"
+    pool_path = os.path.join(BASE_DIR, "composite_pool.csv")
+    nfa_path = os.path.join(BASE_DIR, "NFA_Monthly_Triangulated.csv")
     
     if os.path.exists(pool_path) and os.path.exists(nfa_path):
         df_pool = pd.read_csv(pool_path)
@@ -108,11 +110,11 @@ if st.sidebar.button("🔄 Reset to Live Market Values"):
     st.session_state.dxy_input = float(live_market['DXY'])
     st.rerun()
 
-# Calculate bounds dynamically relative to incoming live data arrays
+# Calculate bounds dynamically relative to incoming live data arrays to protect from max value errors
 vix_max = float(max(80.0, st.session_state.vix_input * 1.3))
 oil_max = float(max(150.0, st.session_state.oil_input * 1.3))
 fed_max = float(max(10.0, st.session_state.fed_input * 1.3))
-gold_max = float(max(5000.0, st.session_state.gold_input * 1.3)) 
+gold_max = float(max(6000.0, st.session_state.gold_input * 1.3)) 
 dxy_max = float(max(130.0, st.session_state.dxy_input * 1.2))
 
 override_vix = st.sidebar.slider("Market Global VIX", 5.0, vix_max, key="vix_input")
@@ -126,9 +128,8 @@ country_historical = master_db[master_db['COUNTRY'] == selected_country].sort_va
 latest_record = country_historical.iloc[-1].copy()
 
 # -------------------------------------------------------------
-# PHASE 3: FEATURE ENGINEERING FOCUS ENGINE (FIXED INITIALIZATION SELECTION)
+# PHASE 3: FEATURE ENGINEERING FOCUS ENGINE
 # -------------------------------------------------------------
-# Build the real-time focus country vector matrix BEFORE running the projection arrays
 gdp_focus = latest_record['GDP'] if latest_record.get('GDP', 0) > 0 else 1.0
 imp_focus = latest_record['Imports of goods'] if latest_record.get('Imports of goods', 0) > 0 else 1.0
 exp_focus = latest_record['Exports of goods'] if latest_record.get('Exports of goods', 0) > 0 else 0.0
@@ -209,7 +210,7 @@ def scrape_live_spot_rate(country_name, fallback_rate):
 base_spot = scrape_live_spot_rate(selected_country, latest_record['Exchange_Rate'])
 target_country_summary = global_summary_df[global_summary_df['COUNTRY'] == selected_country].iloc[0]
 
-# Metrics Summary Ribbon Card Components
+# Metrics Summary Ribbon Component Cards
 kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
 with kpi_col1: st.metric(label="💵 Current Live Spot Rate (1 USD = X)", value=f"{base_spot:.2f}")
 with kpi_col2: st.metric(label="🚨 Systemic Risk (1Y Horizon)", value=f"{target_country_summary['Systemic_Risk']:.1f}%")
@@ -222,7 +223,7 @@ with kpi_col4:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# PHASE 6: VERTICAL RUNWAY BREAKDOWN (THE FIXED ENGINE SEPARATION)
+# PHASE 6: VERTICAL RUNWAY BREAKDOWN (GRAPH ON TOP -> MATRIX BELOW)
 # -------------------------------------------------------------
 st.subheader(f"🔮 12-Month Continuous Linear Macro-Forecast Runway: {selected_country}")
 
@@ -236,7 +237,6 @@ for m in range(1, 13):
     forecast_timeline.append(future_date)
     
     if multi_regressors is not None:
-        # Predict safely using the validated focus feature matrix row compiled in Step 3
         pred_pct = multi_regressors[f'M{m}'].predict(feat_row_focus)[0]
         future_spot = base_spot * (1 + pred_pct)
     else:
@@ -268,7 +268,7 @@ if selected_country == "India": max_y = max(150.0, max_y)
 fig_forecast.update_layout(template="plotly_dark", hovermode="x unified", height=450, yaxis=dict(range=[min_y, max_y]))
 st.plotly_chart(fig_forecast, use_container_width=True)
 
-# Render Forecast Data Summary Table Directly Beneath Chart
+# Render Table Directly Beneath Chart
 st.markdown("<br>", unsafe_allow_html=True)
 forecast_table_df = pd.DataFrame(table_rows)
 st.dataframe(forecast_table_df, use_container_width=True, hide_index=True)
