@@ -10,13 +10,13 @@ import pickle
 from datetime import datetime
 
 # =================================================================
-# SYSTEM INITIALIZATION & ANCHORING
+# PHASE 1: SYSTEM INITIALIZATION & ANCHORING
 # =================================================================
 
-# 1. Get the absolute directory path where app.py lives to guide cloud paths securely
+# Get the absolute directory path where app.py lives to guide cloud server paths securely
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 2. Establish today's exact system date to anchor the forward runway timeline
+# Establish today's exact system date to anchor the forward runway timeline
 CURRENT_DATE = datetime.now()
 st.sidebar.caption(f"📅 Core Anchored to Live Run: **{CURRENT_DATE.strftime('%B %Y')}**")
 
@@ -28,7 +28,7 @@ features_order = [
 ]
 
 # =================================================================
-# CACHED DATA & MODEL ARTIFACT FEEDS
+# PHASE 2: CACHED DATA & MODEL ARTIFACT FEEDS
 # =================================================================
 
 @st.cache_resource
@@ -92,7 +92,7 @@ def load_historical_database():
 master_db = load_historical_database()
 
 # -------------------------------------------------------------
-# SIDEBAR CONFIGURATION PANEL
+# PHASE 3: SIDEBAR CONFIGURATION PANEL
 # -------------------------------------------------------------
 st.sidebar.header("🔍 Configuration Panel")
 country_list = sorted(master_db['COUNTRY'].unique())
@@ -126,7 +126,7 @@ country_historical = master_db[master_db['COUNTRY'] == selected_country].sort_va
 latest_record = country_historical.iloc[-1].copy()
 
 # -------------------------------------------------------------
-# CORE FOCUS NATION FEATURE ENGINEERING MATRIX
+# PHASE 4: CORE FOCUS NATION FEATURE ENGINEERING MATRIX
 # -------------------------------------------------------------
 gdp_focus = latest_record['GDP'] if latest_record.get('GDP', 0) > 0 else 1.0
 imp_focus = latest_record['Imports of goods'] if latest_record.get('Imports of goods', 0) > 0 else 1.0
@@ -150,7 +150,7 @@ feat_row_focus = pd.DataFrame([{
 feat_row_focus = feat_row_focus[features_order]
 
 # -------------------------------------------------------------
-# GLOBAL CROSS-SECTIONAL INFERENCE LOOP (LEADERBOARD & HEATMAP)
+# PHASE 5: GLOBAL CROSS-SECTIONAL INFERENCE LOOP (LEADERBOARD & HEATMAP)
 # -------------------------------------------------------------
 global_current_summary = []
 
@@ -194,7 +194,7 @@ for c in country_list:
 global_summary_df = pd.DataFrame(global_current_summary)
 
 # -------------------------------------------------------------
-# REAL-TIME INFRASTRUCTURE INTERFACE EXECUTIONS
+# PHASE 6: REAL-TIME INFRASTRUCTURE INTERFACE EXECUTIONS
 # -------------------------------------------------------------
 @st.cache_data(ttl=1800)
 def scrape_live_spot_rate(country_name, fallback_rate):
@@ -221,7 +221,7 @@ with kpi_col4:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# VERTICAL FORECAST HORIZON RUNWAY (CHART ON TOP -> TABLE BELOW)
+# PHASE 7: VERTICAL FORECAST HORIZON RUNWAY (CHART ON TOP -> TABLE BELOW)
 # -------------------------------------------------------------
 st.subheader(f"🔮 12-Month Continuous Linear Macro-Forecast Runway: {selected_country}")
 
@@ -274,7 +274,7 @@ st.dataframe(forecast_table_df, use_container_width=True, hide_index=True)
 st.markdown("---")
 
 # -------------------------------------------------------------
-# CHOROPLETH RISK HEATING MAP
+# PHASE 8: CHOROPLETH RISK HEATING MAP
 # -------------------------------------------------------------
 st.subheader("🗺️ Global Sovereign Risk Heat Map Matrix")
 
@@ -290,7 +290,7 @@ st.plotly_chart(fig_map, use_container_width=True)
 st.markdown("---")
 
 # -------------------------------------------------------------
-# SOVEREIGN ASSET RANKING LEADERBOARD
+# PHASE 9: SOVEREIGN ASSET RANKING LEADERBOARD
 # -------------------------------------------------------------
 st.subheader("🏆 Sovereign Resilience Leaderboard Matrix")
 
@@ -307,7 +307,7 @@ st.dataframe(leaderboard_df[["Sovereign Nation", "Spot Exchange Rate", "12M Expe
 st.markdown("---")
 
 # -------------------------------------------------------------
-# MODEL TRANSPARENCY DIAGNOSTICS SUITE (SHAP & PEARSONS HEATMAP)
+# PHASE 10: MODEL TRANSPARENCY DIAGNOSTICS SUITE (SHAP & HEATMAP)
 # -------------------------------------------------------------
 st.subheader("🧠 Deep Diagnostics Suite: Explaining the Model's Brain")
 diag_col1, diag_col2 = st.columns(2)
@@ -337,7 +337,7 @@ with diag_col2:
 st.markdown("---")
 
 # -------------------------------------------------------------
-# CONVERSATIONAL RISK INTERROGATION CO-PILOT
+# PHASE 11: CONVERSATIONAL RISK INTERROGATION CO-PILOT
 # -------------------------------------------------------------
 st.subheader("💬 Institutional Conversational Co-Pilot Desk")
 
